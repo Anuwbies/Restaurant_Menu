@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
+import 'package:restaurant_menu/pages/history/history_page.dart';
+import 'package:restaurant_menu/pages/order/order_page.dart';
+import 'package:restaurant_menu/pages/profile/profile_page.dart';
 import '../menu/menu_page.dart';
 import '../home/home_page.dart';
 
@@ -16,10 +19,10 @@ class _NavbarPageState extends State<NavbarPage> {
 
   static final List<Widget> _pages = <Widget>[
     HomePage(),
-    const MenuPage(),
-    const Center(child: Text('Order', style: TextStyle(fontSize: 32))),
-    const Center(child: Text('History', style: TextStyle(fontSize: 32))),
-    const Center(child: Text('Profile', style: TextStyle(fontSize: 32))),
+    MenuPage(),
+    OrderPage(),
+    HistoryPage(),
+    ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
@@ -32,7 +35,7 @@ class _NavbarPageState extends State<NavbarPage> {
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarIconBrightness: Brightness.dark, // black/dark icons
+        statusBarIconBrightness: Brightness.light, // black/dark icons
         statusBarColor: Colors.transparent, // keep transparent if desired
       ),
       child: Scaffold(
@@ -48,7 +51,7 @@ class _NavbarPageState extends State<NavbarPage> {
           decoration: const BoxDecoration(
             border: Border(
               top: BorderSide(
-                color: Colors.grey,
+                color: Colors.white,
                 width: 1.5,
               ),
             ),
@@ -65,15 +68,16 @@ class _NavbarPageState extends State<NavbarPage> {
               child: BottomNavigationBar(
                 currentIndex: _selectedIndex,
                 onTap: _onItemTapped,
+                backgroundColor: Colors.black,
                 items: [
                   _buildNavBarItem(Icons.home, 'Home', 0),
                   _buildNavBarItem(Icons.restaurant_menu, 'Menu', 1),
-                  _buildNavBarItem(Icons.history, 'Order', 2),
+                  _buildNavBarItem(Icons.list_alt, 'Order', 2),
                   _buildNavBarItem(Icons.history, 'History', 3),
-                  _buildNavBarItem(Icons.account_circle, 'Profile', 5),
+                  _buildNavBarItem(Icons.account_circle, 'Profile', 4),
                 ],
-                selectedItemColor: AppColors.primaryA0,
-                unselectedItemColor: Colors.grey,
+                selectedItemColor: AppColors.primaryA30,
+                unselectedItemColor: AppColors.surfaceA40,
                 showUnselectedLabels: true,
                 type: BottomNavigationBarType.fixed,
                 iconSize: 22,
@@ -92,7 +96,7 @@ class _NavbarPageState extends State<NavbarPage> {
     return BottomNavigationBarItem(
       icon: Container(
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryA0.withOpacity(0.15) : Colors.transparent,
+          color: isSelected ? AppColors.primaryA0: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0), // tighter padding

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:restaurant_menu/assets/app_colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -75,202 +75,182 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Remove status bar background, make status bar text/icons black
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.blueAccent,
-        extendBodyBehindAppBar: true,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: _appBarOpacity,
-            child: AppBar(
-              backgroundColor: Colors.blue,
-              elevation: 0,
-              title: const Text(
-                'Garahe Ni Kuya',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(50),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _appBarOpacity,
+          child: AppBar(
+            backgroundColor: Colors.black,
+            title: const Text(
+              'Garahe Ni Kuya',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
-              centerTitle: false,
+            ),
+            centerTitle: false,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(
+                color: Colors.white,
+                height: 1.5,
+              ),
             ),
           ),
         ),
-        body: Container(
-          color: Colors.white,
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            physics: const ClampingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 95),
-                Material(
-                  color: Colors.blueAccent.withOpacity(0.09),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.blueAccent.withOpacity(0.13),
-                          Colors.blueAccent.withOpacity(0.07),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Row(
+      ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 85),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 15),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'images/logo_gnk.png',
+                    width: 110,
+                    height: 110,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blueAccent.withOpacity(0.13),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Icon(
-                            Icons.restaurant_menu,
-                            size: 70,
-                            color: Colors.blueAccent,
+                        Text(
+                          'Welcome!',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryA0,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Welcome!',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueAccent[700],
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              const Text(
-                                'Enjoy browsing our delicious menu and discover your next favorite meal.',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center, // Centers the text
-                              ),
-                            ],
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Enjoy browsing our delicious menu and discover your next favorite meal.',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 220,
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _carouselIndex = index;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      final img = carouselImages[index % carouselImages.length];
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 4, right: 4, bottom: 15),
-                        child: Material(
-                          elevation: 3,
-                          borderRadius: BorderRadius.circular(12),
-                          clipBehavior: Clip.antiAlias,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              img,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Divider(
-                          color: Colors.grey,
-                          thickness: 1.5,
+                ],
+              ),
+            ),
+            Container(
+              color: Colors.white,
+              height: 1.5,
+            ),
+            const SizedBox(height: 15),
+            SizedBox(
+              height: 220,
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _carouselIndex = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final img = carouselImages[index % carouselImages.length];
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 4, right: 4, bottom: 15),
+                    child: Material(
+                      elevation: 3,
+                      borderRadius: BorderRadius.circular(12),
+                      clipBehavior: Clip.antiAlias,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          img,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
                         ),
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        'EXPLORE DIFFERENT DISHES',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[900],
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      const Expanded(
-                        child: Divider(
-                          color: Colors.grey,
-                          thickness: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Column(
-                    children: List.generate(
-                      (foodTypes.length / 2).ceil(),
-                          (rowIndex) {
-                        final leftIndex = rowIndex * 2;
-                        final rightIndex = leftIndex + 1;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _FoodTypeCard(
-                                  type: foodTypes[leftIndex]['type'],
-                                  imageUrl: foodTypeImage,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              if (rightIndex < foodTypes.length)
-                                Expanded(
-                                  child: _FoodTypeCard(
-                                    type: foodTypes[rightIndex]['type'],
-                                    imageUrl: foodTypeImage,
-                                  ),
-                                )
-                              else
-                                const Expanded(child: SizedBox()),
-                            ],
-                          ),
-                        );
-                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Divider(
+                      color: Colors.white,
+                      thickness: 1.5,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 5),
+                  Text(
+                    'EXPLORE DIFFERENT DISHES',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryA0,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Expanded(
+                    child: Divider(
+                      color: Colors.white,
+                      thickness: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Column(
+                children: List.generate(
+                  (foodTypes.length / 2).ceil(),
+                      (rowIndex) {
+                    final leftIndex = rowIndex * 2;
+                    final rightIndex = leftIndex + 1;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _FoodTypeCard(
+                              type: foodTypes[leftIndex]['type'],
+                              imageUrl: foodTypeImage,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          if (rightIndex < foodTypes.length)
+                            Expanded(
+                              child: _FoodTypeCard(
+                                type: foodTypes[rightIndex]['type'],
+                                imageUrl: foodTypeImage,
+                              ),
+                            )
+                          else
+                            const Expanded(child: SizedBox()),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -305,7 +285,7 @@ class _FoodTypeCard extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
-            color: Colors.black,
+            color: Colors.white,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

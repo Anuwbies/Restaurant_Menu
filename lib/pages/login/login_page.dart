@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../assets/app_colors.dart';
+import '../../firebase/emailpass_auth.dart';
 import '../signup/signup_page.dart';
 import '../navbar/navbar_page.dart';
 
@@ -15,6 +17,8 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _passwordVisible = false;
+
+  final EmailPassAuth _authService = EmailPassAuth();
 
   @override
   void dispose() {
@@ -60,14 +64,24 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _emailController,
                       label: 'Email',
                       keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Email is required';
+                        if (value.contains(' ')) return 'Enter a valid email';
+                        final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                        if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 12),
                     _buildPasswordField(
                       controller: _passwordController,
                       label: 'Password',
                       obscureText: !_passwordVisible,
-                      onToggle: () =>
-                          setState(() => _passwordVisible = !_passwordVisible),
+                      onToggle: () => setState(() => _passwordVisible = !_passwordVisible),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Password is required';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 18),
                     Center(
@@ -103,23 +117,32 @@ class _LoginPageState extends State<LoginPage> {
                             letterSpacing: 1.1,
                           ),
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            // Test account credentials
-                            const testEmail = 'test@example.com';
-                            const testPassword = 'test123';
-                            if (_emailController.text == testEmail &&
-                                _passwordController.text == testPassword) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const NavbarPage(),
+                            try {
+                              final user = await _authService.signIn(
+                                email: _emailController.text.trim(),
+                                password: _passwordController.text,
+                              );
+
+                              if (user != null) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const NavbarPage()),
+                                      (Route<dynamic> route) => false,
+                                );
+                              }
+                            } on FirebaseAuthException catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(e.message ?? 'Login failed'),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
-                            } else {
+                            } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Invalid email or password. Try test@example.com / test123'),
+                                  content: Text('An unexpected error occurred.'),
                                   backgroundColor: Colors.redAccent,
                                 ),
                               );
@@ -253,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
     required String label,
     bool obscureText = false,
     TextInputType? keyboardType,
-    String? Function(String?)? validator,
+    String? Function(String?)? validator, // <-- keep nullable
   }) {
     return TextFormField(
       controller: controller,
@@ -269,8 +292,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide:
-          const BorderSide(color: AppColors.primaryA50, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryA50, width: 2),
         ),
         floatingLabelStyle: const TextStyle(
           fontSize: 14,
@@ -282,8 +304,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide:
-          const BorderSide(color: AppColors.primaryA10, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryA10, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
@@ -297,9 +318,7 @@ class _LoginPageState extends State<LoginPage> {
       style: const TextStyle(fontSize: 14, color: Colors.white),
       obscureText: obscureText,
       keyboardType: keyboardType,
-      validator: validator ??
-              (value) =>
-          value == null || value.isEmpty ? '$label is required' : null,
+      validator: validator, // <-- no default
     );
   }
 
@@ -324,8 +343,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide:
-          const BorderSide(color: AppColors.primaryA50, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryA50, width: 2),
         ),
         floatingLabelStyle: const TextStyle(
           fontSize: 14,
@@ -337,8 +355,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide:
-          const BorderSide(color: AppColors.primaryA10, width: 2),
+          borderSide: const BorderSide(color: AppColors.primaryA10, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
@@ -359,9 +376,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
       style: const TextStyle(fontSize: 14, color: Colors.white),
       obscureText: obscureText,
-      validator: validator ??
-              (value) =>
-          value == null || value.isEmpty ? '$label is required' : null,
+      validator: validator, // <-- no default
     );
   }
 }

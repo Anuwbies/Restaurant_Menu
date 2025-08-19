@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
+import '../../firebase/emailpass_auth.dart';
 import '../login/login_page.dart';
 
 class SignupPage extends StatefulWidget {
@@ -17,8 +20,13 @@ class _SignupPageState extends State<SignupPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  final EmailPassAuth _authService = EmailPassAuth();
+
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
+
+  String? _usernameError;
+  String? _emailError;
 
   @override
   void dispose() {
@@ -64,42 +72,60 @@ class _SignupPageState extends State<SignupPage> {
                 _buildTextField(
                   controller: _usernameController,
                   label: 'Username',
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Username is required';
+                    if (value.length < 3) return 'Username must be at least 3 characters';
+                    if (value.length > 16) return 'Cannot exceed 16 characters';
+                    return null;
+                  },
+                  errorText: _usernameError,
                 ),
                 const SizedBox(height: 12),
                 _buildTextField(
                   controller: _nameController,
                   label: 'Name',
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Name is required';
+                    if (value.length < 3) return 'Name must be at least 3 characters';
+                    if (value.length > 30) return 'Cannot exceed 30 characters';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
                 _buildTextField(
                   controller: _emailController,
                   label: 'Email',
                   keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email is required';
+                    if (value.contains(' ')) return 'Enter a valid email';
+                    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                    if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
+                    return null;
+                  },
+                  errorText: _emailError,
                 ),
                 const SizedBox(height: 12),
                 _buildPasswordField(
                   controller: _passwordController,
                   label: 'Password',
                   obscureText: !_passwordVisible,
-                  onToggle: () =>
-                      setState(() => _passwordVisible = !_passwordVisible),
+                  onToggle: () => setState(() => _passwordVisible = !_passwordVisible),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Password is required';
+                    if (value.length < 8) return 'Password must be at least 8 characters';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
                 _buildPasswordField(
                   controller: _confirmPasswordController,
                   label: 'Confirm Password',
                   obscureText: !_confirmPasswordVisible,
-                  onToggle: () =>
-                      setState(
-                              () =>
-                          _confirmPasswordVisible = !_confirmPasswordVisible),
+                  onToggle: () => setState(() => _confirmPasswordVisible = !_confirmPasswordVisible),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Confirm your password';
-                    }
-                    if (value != _passwordController.text) {
-                      return 'Passwords do not match';
-                    }
+                    if (value == null || value.isEmpty) return 'Confirm your password';
+                    if (value != _passwordController.text) return 'Passwords do not match';
                     return null;
                   },
                 ),
@@ -107,9 +133,64 @@ class _SignupPageState extends State<SignupPage> {
                 SizedBox(
                   width: 280,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      // Reset inline errors first
+                      setState(() {
+                        _usernameError = null;
+                        _emailError = null;
+                      });
+
                       if (_formKey.currentState!.validate()) {
-                        // Handle sign up logic
+                        try {
+                          // Show loading
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          final user = await _authService.signUp(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text,
+                            username: _usernameController.text.trim(),
+                            name: _nameController.text.trim(),
+                          );
+
+                          Navigator.of(context).pop(); // close loading dialog
+
+                          if (user != null) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginPage()),
+                            );
+                          }
+                        } on FirebaseException catch (e) {
+                          Navigator.of(context).pop(); // close loading
+                          setState(() {
+                            // Reset errors each attempt
+                            _usernameError = null;
+                            _emailError = null;
+
+                            if (e.message != null) {
+                              final parts = e.message!.split('|');
+                              for (var part in parts) {
+                                if (part.startsWith('username:')) {
+                                  _usernameError = part.replaceFirst('username:', '').trim();
+                                }
+                                if (part.startsWith('email:')) {
+                                  _emailError = part.replaceFirst('email:', '').trim();
+                                }
+                              }
+                            }
+                          });
+                        } catch (e) {
+                          Navigator.of(context).pop(); // close loading
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
                       }
                     },
                     child: const Text(
@@ -194,6 +275,7 @@ class _SignupPageState extends State<SignupPage> {
     bool obscureText = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    String? errorText, // inline error
   }) {
     return TextFormField(
       controller: controller,
@@ -203,17 +285,18 @@ class _SignupPageState extends State<SignupPage> {
           fontSize: 14,
           color: AppColors.surfaceA50,
         ),
+        errorText: errorText,
         errorStyle: const TextStyle(
           color: AppColors.primaryA50,
           fontSize: 12,
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: AppColors.primaryA50, width: 2), // blue border
+          borderSide: const BorderSide(color: AppColors.primaryA50, width: 2),
         ),
         floatingLabelStyle: const TextStyle(
           fontSize: 14,
-          color: AppColors.primaryA10, // when it floats (focused or not)
+          color: AppColors.primaryA10,
           fontWeight: FontWeight.w500,
         ),
         border: OutlineInputBorder(
@@ -229,16 +312,12 @@ class _SignupPageState extends State<SignupPage> {
         ),
         filled: true,
         fillColor: AppColors.surfaceA10,
-        // subtle background from your theme
-        contentPadding: const EdgeInsets.symmetric(
-            vertical: 10, horizontal: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       ),
       style: const TextStyle(fontSize: 14, color: Colors.white),
       obscureText: obscureText,
       keyboardType: keyboardType,
-      validator: validator ??
-              (value) =>
-          value == null || value.isEmpty ? '$label is required' : null,
+      validator: validator, // only runs if explicitly provided
     );
   }
 
@@ -255,7 +334,7 @@ class _SignupPageState extends State<SignupPage> {
         labelText: label,
         labelStyle: const TextStyle(
           fontSize: 14,
-          color: AppColors.surfaceA50, // match Sign Up color
+          color: AppColors.surfaceA50,
         ),
         errorStyle: const TextStyle(
           color: AppColors.primaryA50,
@@ -263,11 +342,11 @@ class _SignupPageState extends State<SignupPage> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: AppColors.primaryA50, width: 2), // blue border
+          borderSide: const BorderSide(color: AppColors.primaryA50, width: 2),
         ),
         floatingLabelStyle: const TextStyle(
           fontSize: 14,
-          color: AppColors.primaryA10, // when it floats (focused or not)
+          color: AppColors.primaryA10,
           fontWeight: FontWeight.w500,
         ),
         border: OutlineInputBorder(
@@ -283,22 +362,22 @@ class _SignupPageState extends State<SignupPage> {
         ),
         filled: true,
         fillColor: AppColors.surfaceA10,
-        contentPadding: const EdgeInsets.symmetric(
-            vertical: 10, horizontal: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         suffixIcon: IconButton(
           icon: Icon(
             obscureText ? Icons.visibility_off : Icons.visibility,
             size: 22,
-            color: AppColors.surfaceA50, // icon also matches Sign Up color
+            color: AppColors.surfaceA50,
           ),
           onPressed: onToggle,
         ),
       ),
       style: const TextStyle(fontSize: 14, color: Colors.white),
       obscureText: obscureText,
-      validator: validator ??
-              (value) =>
-          value == null || value.isEmpty ? '$label is required' : null,
+      validator: validator, // only runs if explicitly provided
+      inputFormatters: [
+        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+      ],
     );
   }
 }

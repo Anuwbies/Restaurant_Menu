@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:restaurant_menu/assets/app_colors.dart';
 import '../login/login_page.dart';
 
 class MenuPage extends StatefulWidget {
@@ -72,7 +74,7 @@ class _MenuPageState extends State<MenuPage> {
 
   String selectedType = 'All';
   String searchQuery = '';
-  bool isLoggedIn = false; // Simulate login state
+  bool get isLoggedIn => FirebaseAuth.instance.currentUser != null;
   Set<String> favorites = {};
 
   final String foodCardImage =
@@ -117,71 +119,56 @@ class _MenuPageState extends State<MenuPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(50),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'Menu',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          centerTitle: false,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.shopping_cart, color: Colors.white),
+              onPressed: () {
+                // TODO: Handle cart action
+              },
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              color: Colors.white,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header section: Menu text, cart icon, and line below (match HomePage style)
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Menu',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
-                        ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: 40,   // give a square box
-                        height: 40,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,          // remove default padding
-                          constraints: const BoxConstraints(), // remove extra constraints
-                          icon: const Icon(
-                            Icons.shopping_cart,
-                            color: Colors.blueAccent,
-                            size: 28,
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pushNamed('/cart');
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  height: 1.5,
-                  color: Colors.grey,
-                  width: double.infinity,
-                ),
-              ],
-            ),
-
             if (!isLoggedIn)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Container(
                   width: double.infinity,
-                  color: Colors.blueAccent.withOpacity(0.08),
+                  color: AppColors.primaryA0.withOpacity(0.3),
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Colors.blueAccent, size: 20),
+                      const Icon(Icons.info_outline, color: Colors.white, size: 20),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           'Sign up or log in to save your favorites and orders!',
-                          style: TextStyle(color: Colors.blueAccent, fontSize: 14),
+                          style: TextStyle(color: Colors.white, fontSize: 14),
                         ),
                       ),
                       TextButton(
@@ -193,7 +180,7 @@ class _MenuPageState extends State<MenuPage> {
                         },
                         child: const Text(
                           'Log In',
-                          style: TextStyle(color: Colors.blueAccent),
+                          style: TextStyle(color: AppColors.primaryA0),
                         ),
                       ),
                     ],
@@ -207,32 +194,34 @@ class _MenuPageState extends State<MenuPage> {
                 borderRadius: BorderRadius.circular(24),
                 child: TextField(
                   controller: _searchController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Search menu...',
+                    hintStyle: const TextStyle(color: AppColors.surfaceA50, fontSize: 14),
                     prefixIcon: const Padding(
                       padding: EdgeInsets.only(left: 8),
-                      child: Icon(Icons.search, color: Colors.blueAccent),
+                      child: Icon(Icons.search, color: AppColors.surfaceA50),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.surfaceA10,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: Colors.grey, width: 1),
+                      borderSide: const BorderSide(color: AppColors.surfaceA50, width: 1),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: Colors.grey, width: 1),
+                      borderSide: const BorderSide(color: Colors.white, width: 1),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: Colors.grey, width: 1),
+                      borderSide: const BorderSide(color: AppColors.primaryA0, width: 1),
                     ),
                     suffixIcon: searchQuery.isNotEmpty
                         ? Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        icon: const Icon(Icons.clear, color: AppColors.surfaceA50),
                         onPressed: () {
                           _searchController.clear();  // clear the text field
                           setState(() {
@@ -252,9 +241,9 @@ class _MenuPageState extends State<MenuPage> {
               ),
             ),
             SizedBox(
-              height: 44,
+              height: 45+2,
               child: ListView.separated(
-                padding: const EdgeInsets.only(left: 8, right: 8, bottom: 10),
+                padding: const EdgeInsets.only(bottom: 10),
                 scrollDirection: Axis.horizontal,
                 itemCount: foodTypes.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
@@ -262,38 +251,54 @@ class _MenuPageState extends State<MenuPage> {
                   final type = foodTypes[index];
                   final isSelected = selectedType == type;
                   final isFavorite = type == 'Favorite';
-                  return ChoiceChip(
-                    avatar: isFavorite && !isSelected
-                        ? Icon(Icons.favorite, color: Colors.blueAccent, size: 18)
-                        : null,
-                    label: Text(type),
-                    selected: isSelected,
-                    selectedColor: Colors.blueAccent,
-                    backgroundColor: Colors.grey[200],
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    onSelected: (_) {
+
+                  return GestureDetector(
+                    onTap: () {
                       setState(() {
                         selectedType = type;
                       });
                     },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primaryA0 : Colors.black,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.white),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 1),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Favorite icon (only when not selected)
+                            if (isFavorite && !isSelected)
+                              const Icon(Icons.favorite, color: Colors.white, size: 18),
+
+                            if (isSelected)
+                              const Icon(Icons.check, color: Colors.white, size: 18),
+
+                            if ((isFavorite && !isSelected) || isSelected)
+                              const SizedBox(width: 4),
+
+                            Text(
+                              type,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    elevation: isSelected ? 2 : 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // <-- Add this
                   );
                 },
               ),
             ),
             Container(
               height: 1.5,
-              color: Colors.grey,
+              color: Colors.white,
               width: double.infinity,
             ),
-            // Remove the space at the top of the first card
             Expanded(
               child: filteredMenuItems.isEmpty
                   ? Center(
@@ -303,27 +308,28 @@ class _MenuPageState extends State<MenuPage> {
                     Icon(
                       Icons.search_off,
                       size: 60,
-                      color: Colors.blueAccent.withOpacity(0.3),
+                      color: AppColors.surfaceA50,
                     ),
                     const SizedBox(height: 12),
                     const Text(
                       'No items found.',
-                      style: TextStyle(fontSize: 18, color: Colors.black54),
+                      style: TextStyle(fontSize: 18, color: AppColors.surfaceA50),
                     ),
                   ],
                 ),
               )
-                  : ListView.separated(
+              :ListView.separated(
                 padding: const EdgeInsets.all(10),
                 itemCount: filteredMenuItems.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 5),
                 itemBuilder: (context, index) {
                   final item = filteredMenuItems[index];
                   return Card(
-                    color: Colors.blueAccent[90],
-                    elevation: 3,
+                    color: Colors.transparent, // transparent background
+                    elevation: 0, // no shadow (keeps it clean with border)
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: Colors.white, width: 1), // white border
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(10),
@@ -350,6 +356,7 @@ class _MenuPageState extends State<MenuPage> {
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.white, // white text
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -359,25 +366,29 @@ class _MenuPageState extends State<MenuPage> {
                                   '₱${item['price'].toString()}',
                                   style: const TextStyle(
                                     fontSize: 14,
-                                    color: Colors.blueAccent,
-                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Colors.blueAccent,
-                            child: IconButton(
-                              icon: const Icon(Icons.add, color: Colors.white),
-                              onPressed: () {
-                                // TODO: Add to cart logic
-                              },
-                              splashRadius: 22,
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2), // white border
                             ),
-                          ),
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Colors.transparent, // transparent bg
+                              child: IconButton(
+                                icon: const Icon(Icons.add, color: Colors.white),
+                                onPressed: () {
+                                  // TODO: Add to cart logic
+                                },
+                              ),
+                            ),
+                          )
                         ],
                       ),
                     ),

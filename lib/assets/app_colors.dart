@@ -11,6 +11,8 @@ class AppColors {
 
   // Surface colors
   static const Color surfaceA0 = Color(0xFF121212);
+  static const Color surfaceA2 = Color(0xFF171717);
+  static const Color surfaceA5 = Color(0xFF1F1F1F);
   static const Color surfaceA10 = Color(0xFF282828);
   static const Color surfaceA20 = Color(0xFF3f3f3f);
   static const Color surfaceA30 = Color(0xFF575757);
