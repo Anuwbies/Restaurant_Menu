@@ -12,7 +12,20 @@
           "package_name": "com.example.restaurant_menu"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1072119797204-pri14khi49fc6hg2bdfc066amni9fdca.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.restaurant_menu",
+            "certificate_hash": "50b48564d8309afe087ba2e960c144d67d6f12f6"
+          }
+        },
+        {
+          "client_id": "1072119797204-72iuhtrmdqc83g231p9p5hl2ag7muij8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC5IdvYyGdiosNu1gxgXTmlszf_5GZq3_Y"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1072119797204-72iuhtrmdqc83g231p9p5hl2ag7muij8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

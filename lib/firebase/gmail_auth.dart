@@ -3,23 +3,37 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class GmailAuth {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  bool _initialized = false;
+
+  Future<void> _initialize() async {
+    if (_initialized) return;
+    await _googleSignIn.initialize();
+    _initialized = true;
+  }
 
   Future<User?> signInWithGoogle() async {
+    if (!_initialized) await _initialize();
+
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser =
+      await _googleSignIn.authenticate();
+
       if (googleUser == null) return null;
 
-      final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
+      // New API: only idToken available
+      final googleAuth = await googleUser.authentication;
+      if (googleAuth.idToken == null) {
+        throw Exception("Missing Google ID Token");
+      }
 
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
+        // no accessToken anymore
       );
 
-      final UserCredential userCredential =
+      final userCredential =
       await _auth.signInWithCredential(credential);
 
       return userCredential.user;

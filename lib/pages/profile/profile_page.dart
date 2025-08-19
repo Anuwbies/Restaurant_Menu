@@ -114,10 +114,9 @@ class _ProfilePageState extends State<ProfilePage> {
               child: OutlinedButton(
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
-                  Navigator.pushAndRemoveUntil(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false, // removes all previous pages
                   );
                 },
                 style: OutlinedButton.styleFrom(

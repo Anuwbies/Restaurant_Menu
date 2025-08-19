@@ -202,17 +202,30 @@ class _LoginPageState extends State<LoginPage> {
                           elevation: 0,
                         ),
                         onPressed: () async {
-                          final user = await _gmailAuth.signInWithGoogle();
-                          if (user != null) {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const NavbarPage()),
-                                  (Route<dynamic> route) => false,
-                            );
-                          } else {
+                          try {
+                            final user = await _gmailAuth.signInWithGoogle();
+
+                            if (user != null) {
+                              // Navigate to your main page
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (context) => const NavbarPage()),
+                                    (Route<dynamic> route) => false,
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Google sign-in was cancelled'),
+                                  backgroundColor: Colors.orangeAccent,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            print("Google sign-in error: $e"); // Debug print
+
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Google sign-in failed'),
+                              SnackBar(
+                                content: Text('Google sign-in failed: $e'),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
