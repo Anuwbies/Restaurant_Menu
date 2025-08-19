@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../assets/app_colors.dart';
 import '../../firebase/emailpass_auth.dart';
+import '../../firebase/gmail_auth.dart';
 import '../signup/signup_page.dart';
 import '../navbar/navbar_page.dart';
 
@@ -19,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _passwordVisible = false;
 
   final EmailPassAuth _authService = EmailPassAuth();
+  final GmailAuth _gmailAuth = GmailAuth();
 
   @override
   void dispose() {
@@ -199,8 +201,22 @@ class _LoginPageState extends State<LoginPage> {
                           backgroundColor: Colors.white,
                           elevation: 0,
                         ),
-                        onPressed: () {
-                          // TODO: Google sign-in logic
+                        onPressed: () async {
+                          final user = await _gmailAuth.signInWithGoogle();
+                          if (user != null) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => const NavbarPage()),
+                                  (Route<dynamic> route) => false,
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Google sign-in failed'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),
