@@ -1,9 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
+import '../../assets/transition/fromright.dart';
 import '../../firebase/emailpass_auth.dart';
 import '../login/login_page.dart';
+import '../text/privacy_policy_page.dart';
+import '../text/terms_of_use_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -75,7 +79,7 @@ class _SignupPageState extends State<SignupPage> {
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'Username is required';
                     if (value.length < 3) return 'Username must be at least 3 characters';
-                    if (value.length > 16) return 'Cannot exceed 16 characters';
+                    if (value.length > 10) return 'Cannot exceed 10 characters';
                     return null;
                   },
                   errorText: _usernameError,
@@ -218,8 +222,14 @@ class _SignupPageState extends State<SignupPage> {
                       onTap: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (
-                              context) => const LoginPage()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const LoginPage(),
+                            transitionDuration: const Duration(milliseconds: 300),
+                            reverseTransitionDuration: const Duration(milliseconds: 300),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(opacity: animation, child: child);
+                            },
+                          ),
                         );
                       },
                       child: const Text(
@@ -238,28 +248,35 @@ class _SignupPageState extends State<SignupPage> {
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Text.rich(
                     TextSpan(
-                      text: 'By joining Garahe Ni Kuya, you agree \nto our ',
+                      text: 'By joining Garahe Ni Kuya Jo, you agree \nto our ',
+                      style: const TextStyle(fontSize: 13, color: AppColors.surfaceA50),
                       children: [
                         TextSpan(
                           text: 'Terms of Use',
-                          style: const TextStyle(
-                            color: AppColors.primaryA10,
-                          ),
+                          style: const TextStyle(color: AppColors.primaryA10),
+                          recognizer: TapGestureRecognizer()..onTap = () {
+                            Navigator.push(
+                              context,
+                              SlideFromRightPageRoute(page: const TermsOfUsePage()),
+                            );
+                          },
                         ),
                         const TextSpan(text: ' and '),
                         TextSpan(
                           text: 'Privacy Policy',
-                          style: const TextStyle(
-                            color: AppColors.primaryA10,
-                          ),
+                          style: const TextStyle(color: AppColors.primaryA10),
+                          recognizer: TapGestureRecognizer()..onTap = () {
+                            Navigator.push(
+                              context,
+                              SlideFromRightPageRoute(page: const PrivacyPolicyPage()),
+                            );
+                          },
                         ),
                         const TextSpan(text: '.'),
                       ],
                     ),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColors.surfaceA50),
-                  ),
+                  )
                 ),
               ],
             ),

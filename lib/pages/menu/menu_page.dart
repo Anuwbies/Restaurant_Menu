@@ -175,7 +175,17 @@ class _MenuPageState extends State<MenuPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation, secondaryAnimation) => const LoginPage(),
+                              transitionDuration: const Duration(milliseconds: 300),
+                              reverseTransitionDuration: const Duration(milliseconds: 300),
+                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                );
+                              },
+                            ),
                           );
                         },
                         child: const Text(
@@ -188,7 +198,7 @@ class _MenuPageState extends State<MenuPage> {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
               child: Material(
                 elevation: 2,
                 borderRadius: BorderRadius.circular(24),
@@ -243,7 +253,7 @@ class _MenuPageState extends State<MenuPage> {
             SizedBox(
               height: 45+2,
               child: ListView.separated(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 10, left: 5, right: 5),
                 scrollDirection: Axis.horizontal,
                 itemCount: foodTypes.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),

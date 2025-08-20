@@ -1,10 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../assets/app_colors.dart';
+import '../../assets/transition/fromright.dart';
 import '../../firebase/emailpass_auth.dart';
 import '../../firebase/gmail_auth.dart';
 import '../signup/signup_page.dart';
 import '../navbar/navbar_page.dart';
+import '../text/privacy_policy_page.dart';
+import '../text/terms_of_use_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -49,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Garahe Ni Kuya',
+                'Garahe Ni Kuya Jo',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primaryA0,
@@ -122,10 +126,21 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
                             try {
+                              // Show loading spinner
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+
                               final user = await _authService.signIn(
                                 email: _emailController.text.trim(),
                                 password: _passwordController.text,
                               );
+
+                              Navigator.of(context).pop(); // Close loading spinner
 
                               if (user != null) {
                                 Navigator.pushAndRemoveUntil(
@@ -135,6 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                                 );
                               }
                             } on FirebaseAuthException catch (e) {
+                              Navigator.of(context).pop(); // Close loading spinner
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(e.message ?? 'Login failed'),
@@ -142,6 +158,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               );
                             } catch (e) {
+                              Navigator.of(context).pop(); // Close loading spinner
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('An unexpected error occurred.'),
@@ -203,10 +220,19 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         onPressed: () async {
                           try {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+
                             final user = await _gmailAuth.signInWithGoogle();
 
+                            Navigator.of(context).pop(); // Close spinner
+
                             if (user != null) {
-                              // Navigate to your main page
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(builder: (context) => const NavbarPage()),
@@ -221,8 +247,7 @@ class _LoginPageState extends State<LoginPage> {
                               );
                             }
                           } catch (e) {
-                            print("Google sign-in error: $e"); // Debug print
-
+                            Navigator.of(context).pop(); // Close spinner
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Google sign-in failed: $e'),
@@ -248,8 +273,14 @@ class _LoginPageState extends State<LoginPage> {
                           onTap: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) => const SignupPage()),
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) => const SignupPage(),
+                                transitionDuration: const Duration(milliseconds: 300),
+                                reverseTransitionDuration: const Duration(milliseconds: 300),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  return FadeTransition(opacity: animation, child: child);
+                                },
+                              ),
                             );
                           },
                           child: const Text(
@@ -268,30 +299,38 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Text.rich(
-                  TextSpan(
-                    text: 'By joining Garahe Ni Kuya, you agree \nto our ',
-                    children: [
-                      TextSpan(
-                        text: 'Terms of Use',
-                        style: const TextStyle(
-                          color: AppColors.primaryA10,
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'By joining Garahe Ni Kuya Jo, you agree \nto our ',
+                      style: const TextStyle(fontSize: 13, color: AppColors.surfaceA50),
+                      children: [
+                        TextSpan(
+                          text: 'Terms of Use',
+                          style: const TextStyle(color: AppColors.primaryA10),
+                          recognizer: TapGestureRecognizer()..onTap = () {
+                            Navigator.push(
+                              context,
+                              SlideFromRightPageRoute(page: const TermsOfUsePage()),
+                            );
+                          },
                         ),
-                      ),
-                      const TextSpan(text: ' and '),
-                      TextSpan(
-                        text: 'Privacy Policy',
-                        style: const TextStyle(
-                          color: AppColors.primaryA10,
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(color: AppColors.primaryA10),
+                          recognizer: TapGestureRecognizer()..onTap = () {
+                            Navigator.push(
+                              context,
+                              SlideFromRightPageRoute(page: const PrivacyPolicyPage()),
+                            );
+                          },
                         ),
-                      ),
-                      const TextSpan(text: '.'),
-                    ],
-                  ),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: AppColors.surfaceA50),
-                ),
+                        const TextSpan(text: '.'),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  )
               ),
             ],
           ),

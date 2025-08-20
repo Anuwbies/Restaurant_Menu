@@ -85,7 +85,7 @@ class _HomePageState extends State<HomePage> {
           child: AppBar(
             backgroundColor: Colors.black,
             title: const Text(
-              'Garahe Ni Kuya',
+              'Garahe Ni Kuya Jo',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
