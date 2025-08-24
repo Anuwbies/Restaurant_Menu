@@ -15,7 +15,7 @@ class TermsOfUsePage extends StatelessWidget {
           title: const Text(
             'Terms of Use',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),

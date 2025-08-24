@@ -15,7 +15,7 @@ class HelpSupportPage extends StatelessWidget {
           title: const Text(
             'Help & Support',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),

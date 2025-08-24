@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
+import '../../firebase/inventory.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,6 +10,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final InventoryAPI _inventoryAPI = InventoryAPI();
+  List<String> _foodTypes = [];
+  bool _isLoading = true;
+
   final List<String> carouselImages = [
     'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80',
@@ -17,21 +22,6 @@ class _HomePageState extends State<HomePage> {
 
   final String foodTypeImage =
       'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80';
-
-  final List<Map<String, dynamic>> foodTypes = [
-    {'type': 'Pizza'},
-    {'type': 'Salad'},
-    {'type': 'Pasta'},
-    {'type': 'Main'},
-    {'type': 'Dessert'},
-    {'type': 'Drinks'},
-    {'type': 'Appetizers'},
-    {'type': 'Burgers'},
-    {'type': 'Sandwiches'},
-    {'type': 'Soups'},
-    {'type': 'Seafood'},
-    {'type': 'Vegetarian'},
-  ];
 
   late PageController _pageController;
   int _carouselIndex = 0;
@@ -46,6 +36,8 @@ class _HomePageState extends State<HomePage> {
       viewportFraction: 0.92,
     );
     _carouselIndex = carouselImages.length * 1000;
+
+    _loadFoodTypes();
 
     double startFade = 40;
     double endFade = 160;
@@ -63,6 +55,14 @@ class _HomePageState extends State<HomePage> {
           _appBarOpacity = opacity;
         });
       }
+    });
+  }
+
+  Future<void> _loadFoodTypes() async {
+    List<String> names = await _inventoryAPI.fetchInventoryNames();
+    setState(() {
+      _foodTypes = names;
+      _isLoading = false;
     });
   }
 
@@ -103,7 +103,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
         child: Column(
@@ -197,7 +199,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    'EXPLORE DIFFERENT DISHES',
+                    'HOUSE SPECIALS & MORE',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -219,7 +221,7 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Column(
                 children: List.generate(
-                  (foodTypes.length / 2).ceil(),
+                  (_foodTypes.length / 2).ceil(),
                       (rowIndex) {
                     final leftIndex = rowIndex * 2;
                     final rightIndex = leftIndex + 1;
@@ -229,15 +231,15 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           Expanded(
                             child: _FoodTypeCard(
-                              type: foodTypes[leftIndex]['type'],
+                              type: _foodTypes[leftIndex],
                               imageUrl: foodTypeImage,
                             ),
                           ),
                           const SizedBox(width: 10),
-                          if (rightIndex < foodTypes.length)
+                          if (rightIndex < _foodTypes.length)
                             Expanded(
                               child: _FoodTypeCard(
-                                type: foodTypes[rightIndex]['type'],
+                                type: _foodTypes[rightIndex],
                                 imageUrl: foodTypeImage,
                               ),
                             )

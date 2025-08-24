@@ -5,47 +5,28 @@ class EmailPassAuth {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Sign up with email & password, including username and name
+  /// Sign up with email & password, including name
   Future<User?> signUp({
     required String email,
     required String password,
-    required String username,
     required String name,
   }) async {
     try {
-      // 1. Check if username already exists
-      final usernameQuery = await _firestore
-          .collection("users")
-          .where("username", isEqualTo: username.trim())
-          .limit(1)
-          .get();
-
-      // 2. Check if email already exists in Firestore
+      // 1. Check if email already exists in Firestore
       final emailQuery = await _firestore
           .collection("users")
           .where("email", isEqualTo: email.trim())
           .limit(1)
           .get();
 
-      // 3. Collect errors
-      final errors = <String, String>{};
-      if (usernameQuery.docs.isNotEmpty) {
-        errors['username'] = 'Username already exists';
-      }
       if (emailQuery.docs.isNotEmpty) {
-        errors['email'] = 'Email already exists';
-      }
-
-      if (errors.isNotEmpty) {
         throw FirebaseException(
           plugin: 'cloud_firestore',
-          message: errors.entries
-              .map((e) => '${e.key}:${e.value}')
-              .join('|'), // encode both errors
+          message: 'Email already exists',
         );
       }
 
-      // 4. Create FirebaseAuth account
+      // 2. Create FirebaseAuth account
       UserCredential userCredential =
       await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -54,15 +35,19 @@ class EmailPassAuth {
 
       final user = userCredential.user;
       if (user != null) {
-        // 5. Save user profile in Firestore
+        // 3. Update Firebase Auth displayName
+        await user.updateDisplayName(name.trim());
+        await user.reload(); // Refresh the user object
+
+        // 4. Save user profile in Firestore
         await _firestore.collection("users").doc(user.uid).set({
-          "username": username.trim(),
           "name": name.trim(),
           "email": email.trim(),
           "role": "user",
           "createdAt": FieldValue.serverTimestamp(),
         });
       }
+
       return user;
     } on FirebaseAuthException catch (e) {
       throw FirebaseAuthException(code: e.code, message: e.message);

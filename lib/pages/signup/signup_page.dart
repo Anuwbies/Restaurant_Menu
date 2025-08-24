@@ -19,7 +19,6 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _usernameController = TextEditingController();
   final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -29,13 +28,11 @@ class _SignupPageState extends State<SignupPage> {
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
 
-  String? _usernameError;
   String? _emailError;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _usernameController.dispose();
     _nameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -73,18 +70,6 @@ class _SignupPageState extends State<SignupPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                _buildTextField(
-                  controller: _usernameController,
-                  label: 'Username',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Username is required';
-                    if (value.length < 3) return 'Username must be at least 3 characters';
-                    if (value.length > 10) return 'Cannot exceed 10 characters';
-                    return null;
-                  },
-                  errorText: _usernameError,
-                ),
-                const SizedBox(height: 12),
                 _buildTextField(
                   controller: _nameController,
                   label: 'Name',
@@ -140,7 +125,6 @@ class _SignupPageState extends State<SignupPage> {
                     onPressed: () async {
                       // Reset inline errors first
                       setState(() {
-                        _usernameError = null;
                         _emailError = null;
                       });
 
@@ -158,7 +142,6 @@ class _SignupPageState extends State<SignupPage> {
                           final user = await _authService.signUp(
                             email: _emailController.text.trim(),
                             password: _passwordController.text,
-                            username: _usernameController.text.trim(),
                             name: _nameController.text.trim(),
                           );
 
@@ -174,15 +157,11 @@ class _SignupPageState extends State<SignupPage> {
                           Navigator.of(context).pop(); // close loading
                           setState(() {
                             // Reset errors each attempt
-                            _usernameError = null;
                             _emailError = null;
 
                             if (e.message != null) {
                               final parts = e.message!.split('|');
                               for (var part in parts) {
-                                if (part.startsWith('username:')) {
-                                  _usernameError = part.replaceFirst('username:', '').trim();
-                                }
                                 if (part.startsWith('email:')) {
                                   _emailError = part.replaceFirst('email:', '').trim();
                                 }

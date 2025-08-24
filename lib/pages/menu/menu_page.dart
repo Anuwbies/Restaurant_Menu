@@ -18,14 +18,14 @@ class _MenuPageState extends State<MenuPage> {
       'name': 'Margherita Pizza',
       'desc': 'Classic pizza with tomato, mozzarella, and basil.',
       'price': 349,
-      'img': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80',
+      'img': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80',
       'type': 'Pizza',
     },
     {
       'name': 'Pepperoni Pizza',
       'desc': 'Pepperoni, mozzarella, and tomato sauce.',
       'price': 499,
-      'img': 'https://images.unsplash.com/photo-1548365328-8b849e6c7d7b?auto=format&fit=crop&w=400&q=80',
+      'img': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80',
       'type': 'Pizza',
     },
     {
@@ -39,28 +39,28 @@ class _MenuPageState extends State<MenuPage> {
       'name': 'Greek Salad',
       'desc': 'Tomatoes, cucumber, olives, feta cheese.',
       'price': 229,
-      'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+      'img': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80',
       'type': 'Salad',
     },
     {
       'name': 'Spaghetti Carbonara',
       'desc': 'Pasta with pancetta, egg, and parmesan cheese.',
       'price': 299,
-      'img': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+      'img': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80',
       'type': 'Pasta',
     },
     {
       'name': 'Lasagna',
       'desc': 'Layered pasta with beef, tomato, and cheese.',
       'price': 399,
-      'img': 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80',
+      'img': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80',
       'type': 'Pasta',
     },
     {
       'name': 'Grilled Salmon',
       'desc': 'Fresh salmon fillet with lemon and herbs.',
       'price': 599,
-      'img': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
+      'img': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80',
       'type': 'Main',
     },
     {
@@ -72,7 +72,17 @@ class _MenuPageState extends State<MenuPage> {
     },
   ];
 
-  String selectedType = 'All';
+  Map<String, List<Map<String, dynamic>>> _groupByType(List<Map<String, dynamic>> items) {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (var item in items) {
+      final type = item['type'] as String;
+      grouped.putIfAbsent(type, () => []);
+      grouped[type]!.add(item);
+    }
+    return grouped;
+  }
+
+  Set<String> selectedTypes = {'All'}; // default
   String searchQuery = '';
   bool get isLoggedIn => FirebaseAuth.instance.currentUser != null;
   Set<String> favorites = {};
@@ -89,18 +99,20 @@ class _MenuPageState extends State<MenuPage> {
   List<Map<String, dynamic>> get filteredMenuItems {
     final lowerQuery = searchQuery.trim().toLowerCase();
     List<Map<String, dynamic>> filtered;
-    if (selectedType == 'All') {
+
+    if (selectedTypes.contains('All')) {
       filtered = menuItems;
-    } else if (selectedType == 'Favorite') {
+    } else if (selectedTypes.contains('Favorite')) {
       filtered = menuItems.where((item) => favorites.contains(item['name'])).toList();
     } else {
-      filtered = menuItems.where((item) => item['type'] == selectedType).toList();
+      filtered = menuItems.where((item) => selectedTypes.contains(item['type'])).toList();
     }
+
     if (lowerQuery.isNotEmpty) {
       filtered = filtered
           .where((item) =>
-              (item['name'] as String).toLowerCase().contains(lowerQuery) ||
-              (item['desc'] as String).toLowerCase().contains(lowerQuery))
+      (item['name'] as String).toLowerCase().contains(lowerQuery) ||
+          (item['desc'] as String).toLowerCase().contains(lowerQuery))
           .toList();
     }
     return filtered;
@@ -251,7 +263,7 @@ class _MenuPageState extends State<MenuPage> {
               ),
             ),
             SizedBox(
-              height: 45+2,
+              height: 45 + 2,
               child: ListView.separated(
                 padding: const EdgeInsets.only(bottom: 10, left: 5, right: 5),
                 scrollDirection: Axis.horizontal,
@@ -259,13 +271,25 @@ class _MenuPageState extends State<MenuPage> {
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final type = foodTypes[index];
-                  final isSelected = selectedType == type;
-                  final isFavorite = type == 'Favorite';
+                  final isSelected = selectedTypes.contains(type);
 
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        selectedType = type;
+                        if (type == 'All' || type == 'Favorite') {
+                          selectedTypes = {type};
+                        } else {
+
+                          selectedTypes.remove('All');
+                          selectedTypes.remove('Favorite');
+
+                          if (isSelected) {
+                            selectedTypes.remove(type);
+                            if (selectedTypes.isEmpty) selectedTypes.add('All');
+                          } else {
+                            selectedTypes.add(type);
+                          }
+                        }
                       });
                     },
                     child: Container(
@@ -279,22 +303,14 @@ class _MenuPageState extends State<MenuPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Favorite icon (only when not selected)
-                            if (isFavorite && !isSelected)
+                            if (type == 'Favorite' && !isSelected)
                               const Icon(Icons.favorite, color: Colors.white, size: 18),
-
-                            if (isSelected)
-                              const Icon(Icons.check, color: Colors.white, size: 18),
-
-                            if ((isFavorite && !isSelected) || isSelected)
+                            if (isSelected) const Icon(Icons.check, color: Colors.white, size: 18),
+                            if ((type == 'Favorite' && !isSelected) || isSelected)
                               const SizedBox(width: 4),
-
                             Text(
                               type,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -314,96 +330,115 @@ class _MenuPageState extends State<MenuPage> {
                   ? Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.search_off,
-                      size: 60,
-                      color: AppColors.surfaceA50,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
+                  children: const [
+                    Icon(Icons.search_off, size: 60, color: AppColors.surfaceA50),
+                    SizedBox(height: 12),
+                    Text(
                       'No items found.',
                       style: TextStyle(fontSize: 18, color: AppColors.surfaceA50),
                     ),
                   ],
                 ),
               )
-              :ListView.separated(
+                  : ListView(
                 padding: const EdgeInsets.all(10),
-                itemCount: filteredMenuItems.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 5),
-                itemBuilder: (context, index) {
-                  final item = filteredMenuItems[index];
-                  return Card(
-                    color: Colors.transparent, // transparent background
-                    elevation: 0, // no shadow (keeps it clean with border)
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.white, width: 1), // white border
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // group items by type
+                  ..._groupByType(filteredMenuItems).entries.map((entry) {
+                    final type = entry.key;
+                    final items = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              foodCardImage,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  item['name'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white, // white text
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '₱${item['price'].toString()}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2), // white border
-                            ),
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Colors.transparent, // transparent bg
-                              child: IconButton(
-                                icon: const Icon(Icons.add, color: Colors.white),
-                                onPressed: () {
-                                  // TODO: Add to cart logic
-                                },
+                          // Food type heading
+                          Padding(
+                            padding: const EdgeInsets.symmetric( horizontal: 5),
+                            child: Text(
+                              type,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
-                          )
+                          ),
+                          // List of foods under this type
+                          ...items.map((item) => Card(
+                            color: Colors.transparent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(color: Colors.white, width: 1),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      item['img'],
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          item['name'] as String,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '₱${item['price']}',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    width: 36, // smaller size
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryA0,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 1),
+                                    ),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero, // removes default padding
+                                      icon: const Icon(Icons.add, color: Colors.white, size: 18), // smaller icon
+                                      onPressed: () {
+                                        // TODO: Add to cart
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
                         ],
                       ),
-                    ),
-                  );
-                },
+                    );
+                  }),
+                ],
               ),
             ),
           ],

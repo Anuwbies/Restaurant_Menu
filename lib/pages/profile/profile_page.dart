@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
-import 'package:restaurant_menu/pages/navbar/navbar_page.dart';
+import 'package:restaurant_menu/pages/edit/edit_profile_page.dart';
+import 'package:restaurant_menu/pages/password/change_password_page.dart';
 import 'package:restaurant_menu/pages/text/help_support_page.dart';
 import 'package:restaurant_menu/pages/text/privacy_policy_page.dart';
 import '../../assets/transition/fromright.dart';
 import '../login/login_page.dart';
+import '../set/set_password_page.dart';
 import '../text/about_page.dart';
 import '../text/terms_of_use_page.dart';
 
@@ -19,51 +20,47 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  static String? cachedUsername; // store username across instances
   User? user;
+
+  bool _isChangingPic = false; // flag to prevent spamming
+
+  Future<void> _changeProfilePicture() async {
+    if (_isChangingPic) return; // ignore if already processing
+    setState(() => _isChangingPic = true);
+
+    try {
+      // TODO: open image picker & upload new photo
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Change profile picture tapped")),
+      );
+
+      await Future.delayed(const Duration(seconds: 5)); // simulate upload
+    } catch (e) {
+      debugPrint("Error changing picture: $e");
+    } finally {
+      if (mounted) setState(() => _isChangingPic = false);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     user = FirebaseAuth.instance.currentUser;
-    if (cachedUsername == null) {
-      _loadUsername();
-    }
   }
 
-  Future<void> _loadUsername() async {
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user!.uid)
-            .get();
-
-        if (doc.exists && doc.data() != null) {
-          setState(() {
-            cachedUsername = doc['username'] ?? 'Unknown';
-          });
-        } else {
-          setState(() {
-            cachedUsername = 'Unknown';
-          });
-        }
-      } catch (e) {
-        setState(() {
-          cachedUsername = 'Unknown';
-        });
-      }
-    }
+  bool _hasPassword(User user) {
+    return user.providerData.any((info) => info.providerId == 'password');
   }
 
   @override
   Widget build(BuildContext context) {
-    final String username = user != null
-        ? (cachedUsername ?? 'Loading...')
-        : 'Guest';
+    final String displayName = user != null
+        ? (user?.displayName ?? 'Nameless')
+        : 'Guest Account';
+    final String? emailText = user?.email;
     final String joinedDate = user?.metadata.creationTime != null
         ? 'Joined: ${DateFormat('MMM d, y').format(user!.metadata.creationTime!.toLocal())}'
-        : 'Sign in to join';
+        : "Sign up to join";
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -72,13 +69,45 @@ class _ProfilePageState extends State<ProfilePage> {
         child: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
-          title: const Text(
-            'Profile',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          title: Row(
+            children: [
+              const Text(
+                'Profile',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              if (user != null)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(6,3,3,3),
+                  decoration: BoxDecoration(
+                    color: user!.emailVerified ? Colors.green : Colors.red,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        user!.emailVerified ? 'Verified' : 'Unverified',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           centerTitle: false,
           bottom: PreferredSize(
@@ -92,7 +121,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: Column(
         children: [
-          // Header with profile picture, username, joined date, and edit/login button
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
@@ -104,57 +132,79 @@ class _ProfilePageState extends State<ProfilePage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Profile picture with border
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: user?.photoURL != null
-                        ? NetworkImage(user!.photoURL!)
-                        : null,
-                    backgroundColor: Colors.grey[700],
-                    child: user?.photoURL == null
-                        ? const Icon(Icons.person, size: 80, color: Colors.white)
-                        : null,
-                  ),
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 55,
+                        backgroundImage: user?.photoURL != null
+                            ? NetworkImage(user!.photoURL!)
+                            : null,
+                        backgroundColor: Colors.grey[700],
+                        child: user?.photoURL == null
+                            ? const Icon(Icons.person, size: 90, color: Colors.white)
+                            : null,
+                      ),
+                    ),
+                    if (user != null) // Only show edit if logged in
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _changeProfilePicture,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primaryA0,
+                            ),
+                            child: _isChangingPic
+                                ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                                : const Icon(Icons.edit, color: Colors.white, size: 21),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            username,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (user != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: user!.emailVerified ? Colors.green : Colors.red,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                user!.emailVerified ? 'Verified' : 'Unverified',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(width: 8),
+                      if (emailText != null) ...[
+                        Text(
+                          emailText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                       Text(
                         joinedDate,
                         style: const TextStyle(
@@ -162,11 +212,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 8),
                       ElevatedButton(
                         onPressed: () {
                           if (user != null) {
-                            // Navigate to edit profile page
+                            Navigator.push(
+                              context,
+                              SlideFromRightPageRoute(page: const EditProfilePage()),
+                            );
                           } else {
                             // Navigate to login page
                             Navigator.push(
@@ -180,7 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           backgroundColor:
                           user != null ? AppColors.primaryA0 : AppColors.primaryA0,
                           foregroundColor: Colors.white,
-                          minimumSize: const Size(80, 40),
+                          minimumSize: const Size(80, 30),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
@@ -188,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         child: Text(
                           user != null ? 'Edit Profile' : 'Log In',
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ),
                     ],
@@ -207,10 +259,22 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildActionTile(
                     context,
                     icon: Icons.lock_outline,
-                    title: 'Change Password',
+                    title: user != null
+                        ? (_hasPassword(user!) ? 'Change Password' : 'Set Password')
+                        : 'Change Password',
                     onTap: user != null
                         ? () {
-                      // Navigate to change password page
+                      if (_hasPassword(user!)) {
+                        Navigator.push(
+                          context,
+                          SlideFromRightPageRoute(page: const ChangePasswordPage()),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          SlideFromRightPageRoute(page: const SetPasswordPage()),
+                        );
+                      }
                     }
                         : null,
                     iconColor: user != null ? Colors.white : Colors.grey,
@@ -350,11 +414,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         await FirebaseAuth.instance.signOut();
                         setState(() {
                           user = null;
-                          cachedUsername = null; // clear cached username
                         });
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const NavbarPage()),
+                          MaterialPageRoute(builder: (_) => const LoginPage()),
                         );
                       }
                     }

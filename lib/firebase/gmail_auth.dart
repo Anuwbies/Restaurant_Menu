@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -41,30 +40,8 @@ class GmailAuth {
         final doc = await docRef.get();
 
         if (!doc.exists) {
-          // Generate unique username: User + 6-digit random number
-          String baseUsername = "User";
-          String newUsername = "";
-          final random = Random();
-
-          while (true) {
-            int randomNumber = 100000 + random.nextInt(900000); // 6-digit number
-            final candidate = "$baseUsername$randomNumber";
-
-            final query = await _firestore
-                .collection("users")
-                .where("username", isEqualTo: candidate)
-                .limit(1)
-                .get();
-
-            if (query.docs.isEmpty) {
-              newUsername = candidate;
-              break;
-            }
-          }
-
-          // Save user profile in Firestore
+          // Save user profile in Firestore (without username)
           await docRef.set({
-            "username": newUsername,
             "name": user.displayName ?? "",
             "email": user.email ?? "",
             "role": "user",
