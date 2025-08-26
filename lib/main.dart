@@ -1,7 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
+import 'package:restaurant_menu/pages/cart/cart_provider.dart';
 import 'package:restaurant_menu/pages/navbar/navbar_page.dart';
 
 Future<void> main() async {
@@ -19,7 +21,14 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

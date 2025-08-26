@@ -8,7 +8,7 @@ import 'package:restaurant_menu/pages/text/help_support_page.dart';
 import 'package:restaurant_menu/pages/text/privacy_policy_page.dart';
 import '../../assets/transition/fromright.dart';
 import '../login/login_page.dart';
-import '../set/set_password_page.dart';
+import '../password/set_password_page.dart';
 import '../text/about_page.dart';
 import '../text/terms_of_use_page.dart';
 
