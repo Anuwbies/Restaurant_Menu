@@ -1,8 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:restaurant_menu/assets/app_colors.dart';
-import 'package:restaurant_menu/pages/edit/edit_profile_page.dart';
 import 'package:restaurant_menu/pages/password/change_password_page.dart';
 import 'package:restaurant_menu/pages/text/help_support_page.dart';
 import 'package:restaurant_menu/pages/text/privacy_policy_page.dart';
@@ -40,6 +40,139 @@ class _ProfilePageState extends State<ProfilePage> {
     } finally {
       if (mounted) setState(() => _isChangingPic = false);
     }
+  }
+
+  void _showEditNameDialog(BuildContext context, String currentName) {
+    final TextEditingController _nameController =
+    TextEditingController(text: currentName);
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Colors.white, width: 1.5),
+              ),
+              title: const Text(
+                'Edit Name',
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+              content: TextField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Enter your name',
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.white70),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide:
+                    const BorderSide(color: AppColors.primaryA0, width: 2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel',
+                      style: TextStyle(color: AppColors.primaryA0)),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(backgroundColor: AppColors.primaryA0),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                    final newName = _nameController.text.trim();
+
+                    // Remove any previous SnackBar
+                    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+
+                    if (newName.length < 3 || newName.length > 30) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Name must be between 3 and 30 characters')),
+                      );
+                      return;
+                    }
+
+                    if (newName.isNotEmpty && newName != currentName) {
+                      setStateDialog(() => isSaving = true);
+                      try {
+                        final currentUser = FirebaseAuth.instance.currentUser;
+                        if (currentUser != null) {
+                          await currentUser.updateDisplayName(newName);
+                          await currentUser.reload();
+                          final updatedUser = FirebaseAuth.instance.currentUser;
+
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(currentUser.uid)
+                              .update({'name': newName});
+
+                          if (mounted) {
+                            setState(() {
+                              user = updatedUser;
+                            });
+                          }
+
+                          Navigator.pop(context);
+
+                          // Remove previous SnackBar just in case
+                          ScaffoldMessenger.of(context).removeCurrentSnackBar();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Name updated successfully')),
+                          );
+                        }
+                      } on FirebaseAuthException catch (e) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.message}')),
+                        );
+                      } catch (e) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      } finally {
+                        setStateDialog(() => isSaving = false);
+                      }
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: isSaving
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -81,30 +214,100 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const Spacer(),
               if (user != null)
-                Container(
-                  padding: const EdgeInsets.fromLTRB(6,3,3,3),
-                  decoration: BoxDecoration(
-                    color: user!.emailVerified ? Colors.green : Colors.red,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        user!.emailVerified ? 'Verified' : 'Unverified',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                GestureDetector(
+                  onTap: () async {
+                    if (!user!.emailVerified) {
+                      bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            side: const BorderSide(color: Colors.white, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          title: const Text(
+                            'Verify Email',
+                            style: TextStyle(color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                          content: Text(
+                            'Send verification link to:\n\n${user!.email}',
+                            style: const TextStyle(color: Colors.white70),
+                            textAlign: TextAlign.center,
+                          ),
+                          actionsAlignment: MainAxisAlignment.center,
+                          actions: [
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: AppColors.surfaceA10,
+                                padding:
+                                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: AppColors.primaryA0)),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: AppColors.primaryA0,
+                                padding:
+                                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Send Link',
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                    ],
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          await user!.sendEmailVerification();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Verification link sent to your email'),
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(6, 3, 3, 3),
+                    decoration: BoxDecoration(
+                      color: user!.emailVerified ? Colors.green : Colors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          user!.emailVerified ? 'Verified' : 'Unverified',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -183,17 +386,31 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 3), // very small gap
+                          if (user != null)
+                            GestureDetector(
+                              onTap: () => _showEditNameDialog(context, displayName),
+                              child: const Icon(Icons.edit_rounded, color: AppColors.primaryA0, size: 22),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(height: 8),
                       if (emailText != null) ...[
                         Text(
                           emailText,
@@ -212,37 +429,25 @@ class _ProfilePageState extends State<ProfilePage> {
                           fontSize: 14,
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (user != null) {
+                      if (user == null)
+                        ElevatedButton(
+                          onPressed: () {
                             Navigator.push(
                               context,
-                              SlideFromRightPageRoute(page: const EditProfilePage()),
+                              MaterialPageRoute(builder: (_) => const LoginPage()),
                             );
-                          } else {
-                            // Navigate to login page
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const LoginPage()),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          user != null ? AppColors.primaryA0 : AppColors.primaryA0,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(80, 30),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryA0,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(80, 30),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
+                          child: const Text('Log In', style: TextStyle(fontSize: 14)),
                         ),
-                        child: Text(
-                          user != null ? 'Edit Profile' : 'Log In',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
                     ],
                   ),
                 ),

@@ -7,63 +7,61 @@ class SetPasswordPage extends StatefulWidget {
   const SetPasswordPage({super.key});
 
   @override
-  State<SetPasswordPage> createState() => _ChangePasswordState();
+  State<SetPasswordPage> createState() => _SetPasswordPageState();
 }
 
-class _ChangePasswordState extends State<SetPasswordPage> {
+class _SetPasswordPageState extends State<SetPasswordPage> {
   final _formKey = GlobalKey<FormState>();
-  final _currentPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  String? _currentPasswordError;
-
-  bool _obscureCurrent = true;
-  bool _obscureNew = true;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _submit() async {
-    setState(() {
-      _currentPasswordError = null;
-    });
-
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || user.email == null) return;
 
-    final currentPassword = _currentPasswordController.text.trim();
-    final newPassword = _newPasswordController.text.trim();
+    final password = _passwordController.text.trim();
 
     try {
       final credential = EmailAuthProvider.credential(
         email: user.email!,
-        password: currentPassword,
+        password: password,
       );
-      await user.reauthenticateWithCredential(credential);
 
-      await user.updatePassword(newPassword);
+      // Link the password credential to Google account
+      await user.linkWithCredential(credential);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated successfully')),
+        const SnackBar(content: Text('Password set successfully')),
       );
 
-      _currentPasswordController.clear();
-      _newPasswordController.clear();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
 
+      Navigator.pop(context); // Optionally go back
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        setState(() {
-          _currentPasswordError = 'Current password is incorrect';
-        });
-      } else if (e.code == 'weak-password') {
+      if (e.code == 'weak-password') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('New password is too weak')),
+          const SnackBar(content: Text('Password is too weak')),
+        );
+      } else if (e.code == 'provider-already-linked') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password already set for this account')),
+        );
+      } else if (e.code == 'credential-already-in-use') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This email is already linked to another account')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,6 +74,12 @@ class _ChangePasswordState extends State<SetPasswordPage> {
   String? _validateNewPassword(String? value) {
     if (value == null || value.isEmpty) return 'Password is required';
     if (value.length < 8) return 'Password must be at least 8 characters';
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Confirm password is required';
+    if (value != _passwordController.text) return 'Passwords do not match';
     return null;
   }
 
@@ -117,7 +121,7 @@ class _ChangePasswordState extends State<SetPasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
-                'Set your password',
+                'Create a Password',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -127,7 +131,7 @@ class _ChangePasswordState extends State<SetPasswordPage> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Please enter your password and confirm it.',
+                'Secure your account by setting a password.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white70,
@@ -138,60 +142,17 @@ class _ChangePasswordState extends State<SetPasswordPage> {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Current password',
+                  'Enter Password',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),
               const SizedBox(height: 8),
               TextFormField(
-                controller: _currentPasswordController,
-                obscureText: _obscureCurrent,
+                controller: _passwordController,
+                obscureText: _obscurePassword,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Enter current password',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  enabledBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white70),
-                  ),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primaryA0),
-                  ),
-                  errorText: _currentPasswordError,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureCurrent ? Icons.visibility : Icons.visibility_off,
-                      color: Colors.white54,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureCurrent = !_obscureCurrent;
-                      });
-                    },
-                  ),
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                ],
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Password is required';
-                  return null; // no length check
-                },
-              ),
-              const SizedBox(height: 16),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'New Password',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _newPasswordController,
-                obscureText: _obscureNew,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Enter new password',
+                  hintText: 'Enter your password',
                   hintStyle: const TextStyle(color: Colors.white54),
                   enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.white70),
@@ -201,12 +162,12 @@ class _ChangePasswordState extends State<SetPasswordPage> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureNew ? Icons.visibility : Icons.visibility_off,
+                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
                       color: Colors.white54,
                     ),
                     onPressed: () {
                       setState(() {
-                        _obscureNew = !_obscureNew;
+                        _obscurePassword = !_obscurePassword;
                       });
                     },
                   ),
@@ -216,16 +177,46 @@ class _ChangePasswordState extends State<SetPasswordPage> {
                 ],
                 validator: _validateNewPassword,
               ),
-              const SizedBox(height: 20),
-              //forgot password
+              const SizedBox(height: 16),
               const Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                      'Forgot your password?',
-                      style: TextStyle( color: AppColors.surfaceA50)
-                  )
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Confirm Password',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirm,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Confirm your password',
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  enabledBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white70),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primaryA0),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white54,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirm = !_obscureConfirm;
+                      });
+                    },
+                  ),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                ],
+                validator: _validateConfirmPassword,
+              ),
+              const SizedBox(height: 30),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SizedBox(
@@ -237,7 +228,7 @@ class _ChangePasswordState extends State<SetPasswordPage> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: const Text(
-                      'Change Password',
+                      'Set Password',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),

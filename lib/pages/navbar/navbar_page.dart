@@ -17,7 +17,7 @@ class _NavbarPageState extends State<NavbarPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const HomePage(),  // Keep const for better performance
+    const HomePage(),
     const MenuPage(),
     const OrderPage(),
     const ProfilePage(),

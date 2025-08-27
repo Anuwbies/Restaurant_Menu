@@ -18,6 +18,7 @@ class MenuPage extends StatefulWidget {
 
 class _MenuPageState extends State<MenuPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final String placeholderImage =
@@ -35,6 +36,13 @@ class _MenuPageState extends State<MenuPage> {
   void initState() {
     super.initState();
     _fetchMenuItems();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchMenuItems() async {
@@ -221,27 +229,26 @@ class _MenuPageState extends State<MenuPage> {
                   ),
                 ),
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
                 child: Material(
                   borderRadius: BorderRadius.circular(24),
                   child: TextField(
                     controller: _searchController,
-                    style:
-                    const TextStyle(color: Colors.white, fontSize: 14),
+                    focusNode: _searchFocusNode,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Search menu...',
                       hintStyle: const TextStyle(
                           color: AppColors.surfaceA50, fontSize: 14),
                       prefixIcon: const Padding(
                         padding: EdgeInsets.only(left: 8),
-                        child: Icon(Icons.search,
-                            color: AppColors.surfaceA50),
+                        child:
+                        Icon(Icons.search, color: AppColors.surfaceA50),
                       ),
                       filled: true,
                       fillColor: AppColors.surfaceA10,
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 0, horizontal: 0),
+                      contentPadding:
+                      const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: const BorderSide(
@@ -266,6 +273,7 @@ class _MenuPageState extends State<MenuPage> {
                           onPressed: () {
                             _searchController.clear();
                             setState(() => searchQuery = '');
+                            _searchFocusNode.unfocus();
                           },
                         ),
                       )
@@ -279,18 +287,18 @@ class _MenuPageState extends State<MenuPage> {
                   ),
                 ),
               ),
+              // Categories List
               SizedBox(
-                height: 45 + 2,
+                height: 47,
                 child: ListView.separated(
-                  padding:
-                  const EdgeInsets.only(bottom: 10, left: 5, right: 5),
+                  padding: const EdgeInsets.only(bottom: 10, left: 5, right: 5),
                   scrollDirection: Axis.horizontal,
                   itemCount: categories.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 10),
                   itemBuilder: (context, index) {
                     final category = categories[index];
                     final isSelected = selectedCategories.contains(category);
-        
+
                     return GestureDetector(
                       onTap: () {
                         setState(() {
@@ -300,7 +308,8 @@ class _MenuPageState extends State<MenuPage> {
                             selectedCategories.remove('All');
                             if (isSelected) {
                               selectedCategories.remove(category);
-                              if (selectedCategories.isEmpty) selectedCategories.add('All');
+                              if (selectedCategories.isEmpty)
+                                selectedCategories.add('All');
                             } else {
                               selectedCategories.add(category);
                             }
@@ -314,15 +323,13 @@ class _MenuPageState extends State<MenuPage> {
                           border: Border.all(color: Colors.white),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 1),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (isSelected)
-                                const Icon(Icons.check,
-                                    color: Colors.white, size: 18),
-                                const SizedBox(width: 4),
+                                const Icon(Icons.check, color: Colors.white, size: 18),
+                              const SizedBox(width: 4),
                               Text(
                                 category,
                                 style: const TextStyle(
@@ -369,8 +376,7 @@ class _MenuPageState extends State<MenuPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 5),
                               child: Text(
                                 category,
                                 style: const TextStyle(
@@ -379,15 +385,15 @@ class _MenuPageState extends State<MenuPage> {
                                     color: Colors.white),
                               ),
                             ),
-                            ...items.map(
-                                (item) => GestureDetector(
+                            ...items.map((item) => GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   SlideFromRightPageRoute(
                                     page: FoodDetailsPage(
                                       menuId: item['id'],
-                                      imageUrl: item['imageUrl'] ?? placeholderImage,
+                                      imageUrl: item['imageUrl'] ??
+                                          placeholderImage,
                                     ),
                                   ),
                                 );
@@ -396,7 +402,8 @@ class _MenuPageState extends State<MenuPage> {
                                 color: Colors.transparent,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  side: const BorderSide(color: Colors.white, width: 1),
+                                  side: const BorderSide(
+                                      color: Colors.white, width: 1),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(10),
@@ -417,7 +424,8 @@ class _MenuPageState extends State<MenuPage> {
                                         child: SizedBox(
                                           height: 90,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                             mainAxisAlignment: MainAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.max,
                                             children: [
@@ -452,18 +460,21 @@ class _MenuPageState extends State<MenuPage> {
                                         decoration: BoxDecoration(
                                           color: AppColors.primaryA0,
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 1),
+                                          border: Border.all(
+                                              color: Colors.white, width: 1),
                                         ),
                                         child: IconButton(
                                           padding: EdgeInsets.zero,
-                                          icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                                          icon: const Icon(Icons.add,
+                                              color: Colors.white, size: 18),
                                           onPressed: () {
                                             Navigator.push(
                                               context,
                                               SlideFromRightPageRoute(
                                                 page: FoodDetailsPage(
                                                   menuId: item['id'],
-                                                  imageUrl: item['imageUrl'] ?? placeholderImage,
+                                                  imageUrl: item['imageUrl'] ??
+                                                      placeholderImage,
                                                 ),
                                               ),
                                             );
@@ -474,8 +485,7 @@ class _MenuPageState extends State<MenuPage> {
                                   ),
                                 ),
                               ),
-                              ),
-                            ),
+                            )),
                           ],
                         ),
                       );
