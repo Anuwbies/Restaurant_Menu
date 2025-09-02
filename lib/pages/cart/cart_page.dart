@@ -78,7 +78,6 @@ class CartPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
 
-                      // Name and details column
                       Expanded(
                         child: SizedBox(
                           height: 90,
@@ -86,7 +85,8 @@ class CartPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item['name'],
+                                // ✅ Append selected variant after the item name
+                                '${item['name']}${item['selectedVariants'] != null && item['selectedVariants'].isNotEmpty ? " (${item['selectedVariants']})" : ""}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   height: 1,
@@ -94,23 +94,26 @@ class CartPage extends StatelessWidget {
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 3),
-                              Text(
-                                '₱${(item['orderPrice']).toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              if (item['selectedVariants'] != null &&
-                                  item['selectedVariants'].isNotEmpty)
+                              const SizedBox(height: 5),
+                              // ✅ Show chosen addons under main item
+                              if (item['addons'] != null && item['addons'].isNotEmpty)
                                 Text(
-                                  '- ${item['selectedVariants']}',
+                                  '+ ${item['addons'].map((addon) {
+                                    final variant = addon['selectedVariant'] != null &&
+                                        addon['selectedVariant'].toString().isNotEmpty
+                                        ? " (${addon['selectedVariant']})"
+                                        : "";
+                                    return "${addon['name']}$variant";
+                                  }).join(", ")}',
                                   style: const TextStyle(
                                     fontSize: 11,
-                                    color: Colors.white54,
+                                    height: 1,
+                                    color: Colors.lightGreenAccent,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
                                 ),
+                              const SizedBox(height: 3),
                               if (item['allergyNote'] != null &&
                                   item['allergyNote'].isNotEmpty)
                                 Text(
@@ -119,14 +122,24 @@ class CartPage extends StatelessWidget {
                                   'Note: ${item['allergyNote']}',
                                   style: const TextStyle(
                                     fontSize: 11,
+                                    height: 1,
                                     color: Colors.redAccent,
                                   ),
                                 ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '₱${(item['orderPrice']).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  height: 1,
+                                  color: Colors.white70,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
-
+                      SizedBox(width: 5,),
                       // Quantity control
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -251,8 +264,61 @@ class CartPage extends StatelessWidget {
                           List<dynamic> addons = item['addons'] ?? [];
                           if (addons.isNotEmpty) {
                             debugPrint('Add-ons:');
+                            // ✅ Deduct stock for Add-ons
                             for (var addon in addons) {
-                              debugPrint('→ ${addon['name']} | Price: ₱${addon['price']} | Qty: ${addon['quantity']}');
+                              String addonId = addon['inventoryId'];
+                              int addonQuantity = (addon['quantity'] ?? 1);
+                              int orderQuantity = (item['orderQuantity'] ?? 1);
+                              int toDeduct = addonQuantity * orderQuantity;
+                              String? selectedAddonVariant = addon['selectedVariant'];
+
+                              debugPrint('Fetching addon inventory for ID: $addonId');
+                              debugPrint('→ Deduct Calculation: ${addonQuantity} × ${orderQuantity} = $toDeduct');
+
+                              try {
+                                final addonRef = FirebaseFirestore.instance.collection('inventory').doc(addonId);
+                                final addonSnapshot = await addonRef.get();
+
+                                if (addonSnapshot.exists) {
+                                  final addonData = addonSnapshot.data();
+                                  debugPrint('--- ADDON INVENTORY DATA ---');
+                                  debugPrint('Addon Name: ${addonData?['name']}');
+
+                                  // ✅ Handle normal stock
+                                  if (addonData?['stock'] != null) {
+                                    int currentStock = addonData?['stock'] ?? 0;
+                                    int newStock = currentStock - toDeduct;
+
+                                    await addonRef.update({'stock': newStock});
+                                    debugPrint('Addon stock updated: $currentStock → $newStock');
+                                  }
+
+                                  // ✅ Handle addon variant stock
+                                  if (addonData?['variants'] != null && (addonData?['variants'] as List).isNotEmpty) {
+                                    List<dynamic> variants = addonData?['variants'];
+                                    debugPrint('Addon Variants: $variants');
+
+                                    if (selectedAddonVariant != null && selectedAddonVariant.isNotEmpty) {
+                                      for (var v in variants) {
+                                        if (v['name'].toLowerCase() == selectedAddonVariant.toLowerCase()) {
+                                          int currentStock = v['stock'] ?? 0;
+                                          int newStock = currentStock - toDeduct;
+                                          v['stock'] = newStock;
+                                          debugPrint('Updated addon variant ${v['name']} stock: $newStock');
+                                        }
+                                      }
+
+                                      await addonRef.update({'variants': variants});
+                                    }
+                                  }
+
+                                  debugPrint('-----------------------');
+                                } else {
+                                  debugPrint('No inventory found for Add-on ID: $addonId');
+                                }
+                              } catch (e) {
+                                debugPrint('Error fetching addon inventory for $addonId: $e');
+                              }
                             }
                           }
                           debugPrint('--------------------');

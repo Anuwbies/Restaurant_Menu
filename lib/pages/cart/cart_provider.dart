@@ -21,6 +21,7 @@ class CartProvider extends ChangeNotifier {
       String allergyNote,
       Map<String, String?> selectedVariants,
       Map<String, bool> selectedAddons,
+      Map<String, String?> selectedAddonsVariants,
       ) async {
     try {
       final menuData = await _menuAPI.fetchMenuItemById(menuId);
@@ -36,12 +37,14 @@ class CartProvider extends ChangeNotifier {
           if (selectedAddons[addon['inventoryId']] == true) {
             double price = (addon['price'] as num?)?.toDouble() ?? 0.0;
             addonsPrice += price;
+
             chosenAddons.add({
               'inventoryId': addon['inventoryId'],
               'name': addon['name'],
               'price': price,
               'quantity': addon['quantity'] ?? 0, // Include quantity
               'unlimited': addon['unlimited'] ?? false, // Include unlimited
+              'selectedVariant': selectedAddonsVariants[addon['inventoryId']] ?? '', // NEW
             });
           }
         }

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:restaurant_menu/pages/reset/reset_password_page.dart';
 import '../../assets/app_colors.dart';
 import '../../assets/transition/fromright.dart';
 import '../../firebase/emailpass_auth.dart';
@@ -93,7 +94,10 @@ class _LoginPageState extends State<LoginPage> {
                     Center(
                       child: GestureDetector(
                         onTap: () {
-                          // TODO: Forgot password logic
+                          Navigator.push(
+                            context,
+                            SlideFromRightPageRoute(page: const ResetPasswordPage()),
+                          );
                         },
                         child: const Text(
                           "Forgot your password?",

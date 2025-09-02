@@ -32,6 +32,7 @@ class _FoodDetailsPageState extends State<FoodDetailsPage> {
 
   // For addons
   Map<String, bool> selectedAddons = {};
+  Map<String, String?> selectedAddonsVariants = {}; // FIXED
 
   @override
   void initState() {
@@ -47,8 +48,9 @@ class _FoodDetailsPageState extends State<FoodDetailsPage> {
       if (doc.exists) {
         menuData = doc.data() as Map<String, dynamic>;
         await fetchVariantsForItems(menuData!['items'] ?? []);
+        await fetchVariantsForAddons(menuData!['addons'] ?? []);
 
-        // Initialize selectedAddons
+        // Initialize selectedAddons toggle
         final List<dynamic> addons = menuData!['addons'] ?? [];
         for (var addon in addons) {
           if (addon['inventoryId'] != null) {
@@ -76,20 +78,56 @@ class _FoodDetailsPageState extends State<FoodDetailsPage> {
         await FirebaseFirestore.instance.collection('inventory').doc(inventoryId).get();
 
         if (inventoryDoc.exists) {
-          Map<String, dynamic> inventoryData = inventoryDoc.data() as Map<String, dynamic>;
+          Map<String, dynamic> inventoryData =
+          inventoryDoc.data() as Map<String, dynamic>;
 
-          if (inventoryData.containsKey('variants') && inventoryData['variants'] is List) {
-            List<Map<String, dynamic>> variants =
-            List<Map<String, dynamic>>.from(inventoryData['variants']);
+          List<Map<String, dynamic>> variants = [];
+          if (inventoryData.containsKey('variants') &&
+              inventoryData['variants'] is List) {
+            variants = List<Map<String, dynamic>>.from(inventoryData['variants']);
+          }
 
-            int itemQty = (item['quantity'] as int?) ?? 1;
-            if (itemQty <= 1) {
-              variants.removeWhere((variant) =>
-              variant['name'] != null && variant['name'].toString().toLowerCase() == 'both');
-            }
+          int itemQty = (item['quantity'] as int?) ?? 1;
 
+          // Only add "Both" if the item already has variants AND qty > 1
+          if (itemQty > 1 && variants.isNotEmpty) {
+            variants.add({'name': 'Both'});
+          }
+
+          if (variants.isNotEmpty) {
             itemVariants[inventoryId] = variants;
-            selectedVariants[inventoryId] = variants.isNotEmpty ? variants.first['name'] : null;
+            selectedVariants[inventoryId] = variants.first['name'];
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> fetchVariantsForAddons(List<dynamic> addons) async {
+    for (var addon in addons) {
+      if (addon['inventoryId'] != null) {
+        String inventoryId = addon['inventoryId'];
+        DocumentSnapshot inventoryDoc =
+        await FirebaseFirestore.instance.collection('inventory').doc(inventoryId).get();
+
+        if (inventoryDoc.exists) {
+          Map<String, dynamic> inventoryData =
+          inventoryDoc.data() as Map<String, dynamic>;
+
+          List<Map<String, dynamic>> variants = [];
+          if (inventoryData.containsKey('variants') &&
+              inventoryData['variants'] is List) {
+            variants = List<Map<String, dynamic>>.from(inventoryData['variants']);
+          }
+
+          int addonQty = (addon['quantity'] as int?) ?? 1;
+          if (addonQty > 1 && variants.isNotEmpty) {
+            variants.add({'name': 'Both'});
+          }
+
+          if (variants.isNotEmpty) {
+            itemVariants[inventoryId] = variants;
+            selectedAddonsVariants[inventoryId] = variants.first['name']; // DEFAULT FIXED
           }
         }
       }
@@ -235,10 +273,10 @@ class _FoodDetailsPageState extends State<FoodDetailsPage> {
                         color: Colors.black,
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5,10,10,10),
+                        padding: const EdgeInsets.fromLTRB(5, 10, 10, 10),
                         child: Column(
                           children: [
-                            for (var addon in addons)
+                            for (var addon in addons) ...[
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
@@ -272,6 +310,43 @@ class _FoodDetailsPageState extends State<FoodDetailsPage> {
                                   ),
                                 ],
                               ),
+
+                              // Show dropdown if addon has variants and is selected
+                              if (addon['inventoryId'] != null &&
+                                  itemVariants.containsKey(addon['inventoryId']) &&
+                                  itemVariants[addon['inventoryId']]!.isNotEmpty &&
+                                  (selectedAddons[addon['inventoryId']] ?? false))
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 40, bottom: 8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.white54),
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: selectedAddonsVariants[addon['inventoryId']],
+                                      dropdownColor: AppColors.surfaceA10,
+                                      isExpanded: true,
+                                      iconEnabledColor: Colors.white,
+                                      underline: const SizedBox(),
+                                      style: const TextStyle(color: Colors.white),
+                                      items: itemVariants[addon['inventoryId']]!.map((variant) {
+                                        return DropdownMenuItem<String>(
+                                          value: variant['name'],
+                                          child: Text(variant['name']),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          selectedAddonsVariants[addon['inventoryId']] = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ],
                         ),
                       ),
@@ -371,6 +446,7 @@ class _FoodDetailsPageState extends State<FoodDetailsPage> {
                       allergyNote,
                       selectedVariants,
                       selectedAddons,
+                      selectedAddonsVariants,
                     );
 
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CartPage()));
